@@ -1,5 +1,7 @@
 import argparse
 
+import yaml
+
 from models.experimental import *
 
 
@@ -59,9 +61,8 @@ class Model(nn.Module):
 
         # Build strides, anchors
         m = self.model[-1]  # Detect()
-        m.stride = torch.tensor([128 / x.shape[-2] for x in self.forward(torch.zeros(1, ch, 128, 128))])  # forward
+        m.stride = torch.tensor([64 / x.shape[-2] for x in self.forward(torch.zeros(1, ch, 64, 64))])  # forward
         m.anchors /= m.stride.view(-1, 1, 1)
-        check_anchor_order(m)
         self.stride = m.stride
 
         # Init weights, biases
@@ -204,10 +205,10 @@ def parse_model(md, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5m-p6.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     opt = parser.parse_args()
-    opt.cfg = check_file(opt.cfg)  # check file
+    opt.cfg = glob.glob('./**/' + opt.cfg, recursive=True)[0]  # find file
     device = torch_utils.select_device(opt.device)
 
     # Create model

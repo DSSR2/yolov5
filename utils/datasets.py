@@ -5,7 +5,7 @@ import random
 import shutil
 import time
 from pathlib import Path
-from threading import Thread
+#from threading import Thread
 
 import cv2
 import numpy as np
@@ -18,7 +18,7 @@ from utils.utils import xyxy2xywh, xywh2xyxy
 
 help_url = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
 img_formats = ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.dng']
-vid_formats = ['.mov', '.avi', '.mp4', '.mpg', '.mpeg', '.m4v', '.wmv', '.mkv']
+vid_formats = ['.mov', '.avi', '.mp4']
 
 # Get orientation exif tag
 for orientation in ExifTags.TAGS.keys():
@@ -63,8 +63,7 @@ class LoadImages:  # for inference
             self.new_video(videos[0])  # new video
         else:
             self.cap = None
-        assert self.nF > 0, 'No images or videos found in %s. Supported formats are:\nimages: %s\nvideos: %s' % \
-                            (path, img_formats, vid_formats)
+        assert self.nF > 0, 'No images or videos found in ' + path
 
     def __iter__(self):
         self.count = 0
@@ -206,9 +205,9 @@ class LoadStreams:  # multiple IP or RTSP cameras
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = cap.get(cv2.CAP_PROP_FPS) % 100
             _, self.imgs[i] = cap.read()  # guarantee first frame
-            thread = Thread(target=self.update, args=([i, cap]), daemon=True)
+            #thread = Thread(target=self.update, args=([i, cap]), daemon=True)
             print(' success (%gx%g at %.2f FPS).' % (w, h, fps))
-            thread.start()
+            #thread.start()
         print('')  # newline
 
         # check for common shapes
@@ -289,25 +288,23 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.mosaic = self.augment and not self.rect  # load 4 images at a time into a mosaic (only during training)
 
         # Define labels
-        self.label_files = [x.replace('images', 'labels').replace(os.path.splitext(x)[-1], '.txt')
+        self.label_files = [x.replace('Images', 'Labels').replace(os.path.splitext(x)[-1], '.txt')
                             for x in self.img_files]
-
-        # Read image shapes (wh)
-        sp = path.replace('.txt', '') + '.shapes'  # shapefile path
-        try:
-            with open(sp, 'r') as f:  # read existing shapefile
-                s = [x.split() for x in f.read().splitlines()]
-                assert len(s) == n, 'Shapefile out of sync'
-        except:
-            s = [exif_size(Image.open(f)) for f in tqdm(self.img_files, desc='Reading image shapes')]
-            np.savetxt(sp, s, fmt='%g')  # overwrites existing (if any)
-
-        self.shapes = np.array(s, dtype=np.float64)
-
+        
         # Rectangular Training  https://github.com/ultralytics/yolov3/issues/232
         if self.rect:
+            # Read image shapes (wh)
+            sp = path.replace('.txt', '') + '.shapes'  # shapefile path
+            try:
+                with open(sp, 'r') as f:  # read existing shapefile
+                    s = [x.split() for x in f.read().splitlines()]
+                    assert len(s) == n, 'Shapefile out of sync'
+            except:
+                s = [exif_size(Image.open(f)) for f in tqdm(self.img_files, desc='Reading image shapes')]
+                np.savetxt(sp, s, fmt='%g')  # overwrites existing (if any)
+
             # Sort by aspect ratio
-            s = self.shapes  # wh
+            s = np.array(s, dtype=np.float64)
             ar = s[:, 1] / s[:, 0]  # aspect ratio
             irect = ar.argsort()
             self.img_files = [self.img_files[i] for i in irect]
@@ -365,17 +362,17 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                     l[:, 0] = 0  # force dataset into single-class mode
                 self.labels[i] = l
                 nf += 1  # file found
-
+                #print(nf)
                 # Create subdataset (a smaller dataset)
                 if create_datasubset and ns < 1E4:
                     if ns == 0:
                         create_folder(path='./datasubset')
-                        os.makedirs('./datasubset/images')
+                        os.makedirs('./datasubset/Images')
                     exclude_classes = 43
                     if exclude_classes not in l[:, 0]:
                         ns += 1
                         # shutil.copy(src=self.img_files[i], dst='./datasubset/images/')  # copy image
-                        with open('./datasubset/images.txt', 'a') as f:
+                        with open('./datasubset/Images.txt', 'a') as f:
                             f.write(self.img_files[i] + '\n')
 
                 # Extract object detection boxes for a second stage classifier
@@ -768,7 +765,7 @@ def cutout(image, labels):
     return labels
 
 
-def reduce_img_size(path='../data/sm4/images', img_size=1024):  # from utils.datasets import *; reduce_img_size()
+def reduce_img_size(path='../data/sm4/Images', img_size=1024):  # from utils.datasets import *; reduce_img_size()
     # creates a new ./images_reduced folder with reduced size images of maximum size img_size
     path_new = path + '_reduced'  # reduced images path
     create_folder(path_new)
@@ -789,7 +786,7 @@ def convert_images2bmp():  # from utils.datasets import *; convert_images2bmp()
     # Save images
     formats = [x.lower() for x in img_formats] + [x.upper() for x in img_formats]
     # for path in ['../coco/images/val2014', '../coco/images/train2014']:
-    for path in ['../data/sm4/images', '../data/sm4/background']:
+    for path in ['../data/sm4/Images', '../data/sm4/background']:
         create_folder(path + 'bmp')
         for ext in formats:  # ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.dng']
             for f in tqdm(glob.glob('%s/*%s' % (path, ext)), desc='Converting %s' % ext):

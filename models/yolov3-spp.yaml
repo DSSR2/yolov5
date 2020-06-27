@@ -25,7 +25,8 @@ backbone:
    [-1, 4, Bottleneck, [1024]],  # 10
   ]
 
-# YOLOv3-SPP head
+# yolov3-spp head
+# na = len(anchors[0])
 head:
   [[-1, 1, Bottleneck, [1024, False]],  # 11
    [-1, 1, SPP, [512, [5, 9, 13]]],
